@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte'
   import {
-    Search, Plus, Table2, Moon, Sun, SquareTerminal, Home, NotebookPen, RefreshCw, PanelLeft, Bookmark, History, LayoutDashboard,
+    Search, Plus, Table2, Moon, Sun, SquareTerminal, NotebookPen, RefreshCw, PanelLeft, Bookmark, History, LayoutDashboard,
   } from 'lucide-svelte'
   import { closeCommandPalette, isCommandPaletteOpen } from '../../stores/command-palette.svelte'
   import { duck, duckActions } from '../../stores/duck.svelte'
@@ -103,17 +103,10 @@
     }
   }
 
-  function openHome() {
-    const existing = tabs.find((t) => t.type === 'home')
-    if (existing) duckActions().setActiveTab(existing.id)
-    else duckActions().createTab('home', '', 'Home')
-  }
-
   const items = $derived.by((): CommandItem[] => {
     const list: CommandItem[] = [
       { id: 'new-query', group: 'actions', label: 'New query', icon: Plus, shortcut: '⌥N', keywords: 'sql editor tab', run: inWorkspace(() => duckActions().createTab('sql')) },
       { id: 'new-notebook', group: 'actions', label: 'New notebook', icon: NotebookPen, keywords: 'python markdown cells', run: inWorkspace(() => duckActions().createTab('notebook')) },
-      { id: 'home', group: 'actions', label: 'Home', icon: Home, keywords: 'start welcome', run: inWorkspace(openHome) },
       { id: 'explorer', group: 'actions', label: 'Toggle explorer', icon: PanelLeft, shortcut: '⌘B', keywords: 'sidebar schema panel', run: inWorkspace(toggleExplorer) },
       { id: 'refresh', group: 'actions', label: 'Refresh schema', icon: RefreshCw, keywords: 'reload tables databases', run: () => void duckActions().fetchDatabasesAndTablesInfo() },
       { id: 'theme', group: 'actions', label: getTheme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme', icon: getTheme() === 'dark' ? Sun : Moon, keywords: 'dark light mode appearance', run: toggleTheme },

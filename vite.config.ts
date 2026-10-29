@@ -61,10 +61,11 @@ export default defineConfig(({ mode }) => {
           "logo-padding.png",
           "logo-192.png",
           "badge.svg",
+          "sql-repl.svg",
         ],
         manifest: {
-          name: "Duck-UI",
-          short_name: "Duck-UI",
+          name: "SQL/REPL",
+          short_name: "SQL/REPL",
           description:
             "DuckDB in your browser: SQL editor, notebooks, charts, and AI, fully local.",
           theme_color: "#000000",

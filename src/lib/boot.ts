@@ -4,6 +4,16 @@ import { initializeSystemDb } from "@/services/persistence/systemDb";
 import { cleanupOrphanedStorage } from "@/services/persistence/cleanup";
 import { listProfiles } from "@/services/persistence/repositories/profileRepository";
 
+/** Open a local workspace without a profile picker. Never unlock protected profiles. */
+export async function bootWorkspace(): Promise<void> {
+  await initializeSystemDb();
+  cleanupOrphanedStorage().catch(() => {});
+  const profiles = await listProfiles();
+  const workspace = profiles.find((profile) => !profile.has_password);
+  if (workspace) await selectProfile(workspace.id);
+  else await createAndLoadProfile("Workspace", undefined, "💻");
+}
+
 export type ProfileBoot = { kind: "ready" } | { kind: "picker"; profiles: Profile[] };
 
 /**

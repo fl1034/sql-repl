@@ -140,10 +140,20 @@
   --edge: rgba(0, 0, 0, 0.11);
   --edge-strong: rgba(0, 0, 0, 0.2);
 
-  --accent: #ca8a04;
+  --syntax-keyword: #7c3aed;
+  --syntax-string: #047857;
+  --syntax-literal: #c2410c;
+  --syntax-comment: #64748b;
+  --syntax-type: #be185d;
+  --syntax-function: #1d4ed8;
+  --syntax-operator: #4f46e5;
+  --syntax-identifier: #334155;
+  --syntax-special: #be123c;
+
+  --accent: #0891b2;
   --accent-fg: #0a0a0a;
-  --accent-soft: rgba(202, 138, 4, 0.14);
-  --accent-ring: rgba(202, 138, 4, 0.5);
+  --accent-soft: rgba(8, 145, 178, 0.14);
+  --accent-ring: rgba(8, 145, 178, 0.5);
 
   --success: #15803d;
   --success-soft: rgba(22, 163, 74, 0.12);
@@ -194,10 +204,20 @@
   --edge: rgba(255, 255, 255, 0.13);
   --edge-strong: rgba(255, 255, 255, 0.22);
 
-  --accent: #fff100;
+  --syntax-keyword: #c4b5fd;
+  --syntax-string: #6ee7b7;
+  --syntax-literal: #fb923c;
+  --syntax-comment: #94a3b8;
+  --syntax-type: #f9a8d4;
+  --syntax-function: #93c5fd;
+  --syntax-operator: #a5b4fc;
+  --syntax-identifier: #e2e8f0;
+  --syntax-special: #fb7185;
+
+  --accent: #22d3ee;
   --accent-fg: #0a0a0a;
-  --accent-soft: rgba(255, 241, 0, 0.14);
-  --accent-ring: rgba(255, 241, 0, 0.5);
+  --accent-soft: rgba(34, 211, 238, 0.14);
+  --accent-ring: rgba(34, 211, 238, 0.5);
 
   --success: #4ade80;
   --success-soft: rgba(34, 197, 94, 0.14);

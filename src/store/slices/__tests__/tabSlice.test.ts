@@ -31,7 +31,7 @@ describe("openTableTab", () => {
   it("focuses the existing tab instead of opening the same table twice", () => {
     const store = setup();
     const first = store.getState().openTableTab("memory", "main", "orders");
-    store.getState().setActiveTab("home");
+    store.getState().setActiveTab("query");
 
     const again = store.getState().openTableTab("memory", "main", "orders");
 
@@ -74,7 +74,7 @@ describe("panes", () => {
 
     store.getState().setActiveTab(left);
     store.getState().createTab("sql", "", "next to left");
-    expect(titles(store)).toEqual(["Home", "left", "next to left"]);
+    expect(titles(store)).toEqual(["Query 1", "left", "next to left"]);
   });
 
   it("focusing the other pane keeps the tab that was active on screen there", () => {
@@ -101,28 +101,23 @@ describe("panes", () => {
     expect(store.getState().otherPaneTabId).toBeNull();
   });
 
-  it("does not close, move or split Home", () => {
+  it("opens SQL when legacy code requests Home", () => {
     const store = setup();
-    const id = store.getState().createTab("sql", "", "query");
-
-    store.getState().closeTab("home");
-    store.getState().splitTab("home");
-    store.getState().moveTab(0, 1);
-    store.getState().moveTab(1, 0);
-
-    expect(titles(store)).toEqual(["Home", "query"]);
-    expect(store.getState().activeTabId).toBe(id);
+    const id = store.getState().createTab("home");
+    expect(store.getState().tabs.find((tab) => tab.id === id)?.type).toBe("sql");
   });
 
-  it("closeAllTabs leaves Home, in one pane", () => {
+  it("closeAllTabs leaves a fresh SQL editor, in one pane", () => {
     const store = setup();
     store.getState().splitTab(store.getState().createTab("sql", "", "a"));
     store.getState().createTab("sql", "", "b");
 
     store.getState().closeAllTabs();
 
-    expect(store.getState().tabs.map((tab) => tab.title)).toEqual(["Home"]);
-    expect(store.getState().activeTabId).toBe("home");
+    expect(store.getState().tabs.map((tab) => tab.title)).toEqual(["Query 1"]);
+    expect(store.getState().tabs).toHaveLength(1);
+    expect(store.getState().tabs[0].type).toBe("sql");
+    expect(store.getState().activeTabId).toBe(store.getState().tabs[0].id);
     expect(store.getState().otherPaneTabId).toBeNull();
   });
 

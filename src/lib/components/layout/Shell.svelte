@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import Sidebar from './Sidebar.svelte'
   import TabBar, { TAB_DRAG_TYPE } from './TabBar.svelte'
   import TabContent from './TabContent.svelte'
   import CommandPalette from './CommandPalette.svelte'
@@ -177,6 +176,7 @@
 
   onMount(() => {
     const stopRouter = initRouter()
+    goWorkspace()
     window.addEventListener('keydown', handleGlobalShortcuts, true)
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => {
@@ -188,7 +188,6 @@
 </script>
 
 <div class="flex h-full {isMobile() ? 'flex-col-reverse' : ''}">
-  <Sidebar />
   <ContextPanel />
 
   <!-- Pages: full-screen product areas driven by the URL -->

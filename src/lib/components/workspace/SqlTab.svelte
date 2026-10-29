@@ -1,28 +1,22 @@
 <script lang="ts">
   import { untrack } from 'svelte'
   import type { Extension } from '@codemirror/state'
-  import { Play, Square, ListTree, WandSparkles, Pin, GitCompare, Keyboard, Brain, Sparkles, Bookmark, Share2, LayoutDashboard, ChartColumn, Map as MapIcon } from 'lucide-svelte'
+  import { Play, Square, WandSparkles, Pin, Keyboard, Save, Download, ChartColumn, Map as MapIcon } from 'lucide-svelte'
   import Button from '../common/Button.svelte'
   import Tooltip from '../common/Tooltip.svelte'
   import CodeEditor from '../editor/CodeEditor.svelte'
   import QueryParamsBar from '../editor/QueryParamsBar.svelte'
   import ResultPanel from '../editor/ResultPanel.svelte'
-  import ExplainPlanViewer from '../editor/ExplainPlanViewer.svelte'
-  import ResultCompareDialog from '../editor/ResultCompareDialog.svelte'
   import ChartView from '../charts/ChartView.svelte'
   import Spinner from '../common/Spinner.svelte'
-  import AddToDashboardDialog from '../dashboard/AddToDashboardDialog.svelte'
-  import ShareDialog from '../share/ShareDialog.svelte'
+  import { updateSavedQuery } from '@/services/persistence/repositories/savedQueryRepository'
+  import { linkQueryFile } from '@/lib/queryFiles'
   import SaveQueryDialog from '../saved-queries/SaveQueryDialog.svelte'
-  import BrainResultActions from '../duck-brain/BrainResultActions.svelte'
   import { duck, duckActions } from '../../stores/duck.svelte'
   import * as toast from '../../stores/toast.svelte'
-  import { listParameterNames, missingParamsMessage, resolveQueryParams } from '@/lib/sqlParams'
-  import { extractPlanText } from '@/lib/explainPlan'
+  import { listParameterNames, resolveQueryParams } from '@/lib/sqlParams'
   import { PIN_ROW_LIMIT } from '@/lib/resultDiff'
-  import { getUiConfig } from '@/lib/appConfig'
   import { findGeometryColumns } from '@/lib/geoResult'
-  import { isNumericColumn } from '@/lib/chartDataTransform'
   import { collaborativeBinding } from '@/lib/editor/collaboration'
   import { locateError } from '@/lib/editor/sqlError'
   import { buildFilteredQuery, isWrappableQuery } from '@/lib/resultTable/filterSql'
@@ -31,7 +25,6 @@
   import type { ColumnFilter, ResultSort } from '../../utils/result-filters'
   import type { QueryResult } from '@/store/types'
   import { getCollaboration } from '@/store/slices/sessionSlice'
-  import type { EditorTab } from '@/store/types'
 
   interface Props {
     tabId: string
@@ -49,10 +42,7 @@
   const sqlText = $derived(typeof tab?.content === 'string' ? tab.content : '')
   const executing = $derived(duck((s) => !!s.executingTabs[tabId]))
   const progress = $derived(duck((s) => s.queryProgress[tabId]))
-  const pinCount = $derived(duck((s) => s.resultPins.length))
   const paramNames = $derived(listParameterNames(sqlText))
-  const brainOpen = $derived(duck((s) => s.duckBrain.isPanelOpen))
-  const ui = getUiConfig()
   // Cheap: a scan of the column types, not the rows.
   const geometryColumns = $derived(tab?.result && !tab.result.error ? findGeometryColumns(tab.result) : [])
   // A rerun without a GEOMETRY column drops the Map view; the panel falls back to the table.
@@ -64,15 +54,8 @@
   let editor: CodeEditor | undefined = $state()
   let containerEl: HTMLDivElement | undefined = $state()
   let resultView = $state('table')
-  let explainOpen = $state(false)
-  let explainText = $state('')
-  let explaining = $state(false)
-  let compareOpen = $state(false)
   let resizing = $state(false)
-  let fixing = $state(false)
   let saveOpen = $state(false)
-  let addToDashboardOpen = $state(false)
-  let shareTab = $state<EditorTab | null>(null)
 
   const sessionStatus = $derived(duck((s) => s.session.status))
   // Raw and replaced as a whole: the editor reconfigures when the array
@@ -102,24 +85,10 @@
     }
   })
 
-  function share() {
-    const query = currentSql()
-    if (!query || !tab) {
-      toast.error('No query to share')
-      return
-    }
-    // The live editor text plus the tab's chart config. The result rides
-    // along so the dialog can offer its columns as embed filters.
-    shareTab = { id: tabId, title: tab.title || 'Shared Query', type: 'sql', content: query, chartConfig: tab.chartConfig, result: tab.result ?? null }
-  }
   const profileId = $derived(duck((s) => s.currentProfileId))
 
   const savedSplit = parseFloat(localStorage.getItem(SPLIT_KEY) ?? '')
   let splitPercent = $state(Number.isNaN(savedSplit) ? 45 : savedSplit)
-
-  function currentSql(): string {
-    return (editor?.getValue() ?? sqlText).trim()
-  }
 
   // What the last run sent, and where it starts in the editor. An error
   // position is relative to this text, not to the document.
@@ -171,6 +140,33 @@
     return runQuery(session, wrapped, 'result filter', { maxRows: duckActions().maxResultRows })
   }
 
+  function downloadSql() {
+    const sql = editor?.getValue() ?? sqlText
+    const name = (tab?.title || 'query').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim() || 'query'
+    const url = URL.createObjectURL(new Blob([sql], { type: 'application/sql;charset=utf-8' }))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = /\.sql$/i.test(name) ? name : `${name}.sql`
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  async function saveFile() {
+    if (!tab?.savedQueryId) {
+      saveOpen = true
+      return
+    }
+    try {
+      await updateSavedQuery(tab.savedQueryId, { sql_text: editor?.getValue() ?? sqlText, name: tab.title })
+      duckActions().bumpSavedQueriesVersion()
+      toast.success('Query saved')
+    } catch {
+      toast.error('Failed to save query')
+    }
+  }
+
   function runFromToolbar() {
     const target = editor?.getRunTarget()
     void run(target?.text ?? sqlText.trim(), target?.from ?? 0)
@@ -182,52 +178,6 @@
       toast.info('Query cancelled')
     } catch (error) {
       console.error('Failed to cancel query:', error)
-    }
-  }
-
-  async function explain() {
-    const query = currentSql()
-    if (!query || executing) return
-
-    // Running without a tab id (below) skips executeQuery's parameter step,
-    // so resolve `$name` placeholders here with this tab's values.
-    const resolved = resolveQueryParams(query, tab?.queryParams)
-    if (resolved.sql === null) {
-      toast.error(missingParamsMessage(resolved.missing))
-      return
-    }
-
-    explaining = true
-    try {
-      // No tab id, so the plan is returned without replacing the tab's result.
-      const result = await duckActions().executeQuery(`EXPLAIN ANALYZE ${resolved.sql}`)
-      if (result?.error) {
-        toast.error(result.error)
-      } else if (result && result.data.length > 0) {
-        explainText = extractPlanText(result.data)
-        explainOpen = true
-      }
-    } catch (error) {
-      console.error('Explain failed:', error)
-      toast.error('Explain query failed')
-    } finally {
-      explaining = false
-    }
-  }
-
-  async function fixWithBrain() {
-    const error = tab?.result?.error
-    if (!error || !sqlText) return
-    fixing = true
-    try {
-      const { buildFixQueryRequest } = await import('@/lib/duckBrain')
-      const fixed = await duckActions().generateSQL(buildFixQueryRequest(sqlText, error))
-      if (fixed) {
-        duckActions().updateTabQuery(tabId, fixed)
-        toast.success('Duck Brain suggested a fix. Review it and run again')
-      }
-    } finally {
-      fixing = false
     }
   }
 
@@ -290,35 +240,16 @@
           <WandSparkles size={13} />
           Format
         </Button>
-        <Button size="sm" variant="ghost" onclick={explain} title="Explain analyze" disabled={executing || !sqlText.trim()} loading={explaining}>
-          {#if !explaining}<ListTree size={13} />{/if}
-          Explain
-        </Button>
-
-        <Button size="sm" variant="ghost" onclick={() => (saveOpen = true)} title="Save query" disabled={!sqlText.trim() || !profileId}>
-          <Bookmark size={13} />
+        <Button size="sm" variant="ghost" onclick={saveFile} title="Save query" disabled={!sqlText.trim() || !profileId}>
+          <Save size={13} />
           Save
         </Button>
-
-        <Button size="sm" variant="ghost" onclick={share} title="Share query and chart" disabled={!sqlText.trim()}>
-          <Share2 size={13} />
-          Share
+        <Button size="sm" variant="ghost" onclick={downloadSql} title="Download SQL file" disabled={!sqlText.trim()}>
+          <Download size={13} />
+          Download
         </Button>
 
         <div class="ml-auto flex items-center">
-          {#if !ui.hideBrain}
-            <Button
-              size="sm"
-              variant="ghost"
-              class={brainOpen ? 'text-accent' : ''}
-              aria-pressed={brainOpen}
-              onclick={() => duckActions().toggleBrainPanel()}
-              title="Ask Duck Brain"
-            >
-              <Brain size={13} />
-              Duck Brain
-            </Button>
-          {/if}
           <Tooltip text="Run selection or statement at cursor: {mod}+Enter. Run everything: {mod}+Shift+Enter. Format: Alt+F. Search: {mod}+F." side="bottom">
             <span class="inline-flex h-7 w-7 items-center justify-center text-fg-4"><Keyboard size={14} /></span>
           </Tooltip>
@@ -385,27 +316,10 @@
               />
             {/if}
           {/snippet}
-          {#snippet errorActions()}
-            {#if !ui.hideBrain}
-              <Button size="sm" variant="outline" onclick={fixWithBrain} loading={fixing}>
-                {#if !fixing}<Sparkles size={13} />{/if}
-                {fixing ? 'Duck Brain is thinking...' : 'Fix with Duck Brain'}
-              </Button>
-            {/if}
-          {/snippet}
-          {#snippet actions(result)}
-            <BrainResultActions {tabId} sql={sqlText} {result} onchartapplied={() => (resultView = 'charts')} />
+          {#snippet actions()}
             <Button size="xs" variant="ghost" onclick={pinResult} title="Keep a copy of this result to compare against later">
               <Pin size={13} />
               Pin result
-            </Button>
-            <Button size="xs" variant="ghost" onclick={() => (compareOpen = true)} disabled={pinCount === 0}>
-              <GitCompare size={13} />
-              Compare{pinCount > 0 ? ` (${pinCount})` : ''}
-            </Button>
-            <Button size="xs" variant="ghost" onclick={() => (addToDashboardOpen = true)}>
-              <LayoutDashboard size={13} />
-              Add to dashboard
             </Button>
           {/snippet}
         </ResultPanel>
@@ -413,18 +327,7 @@
     </div>
   </div>
 
-  <AddToDashboardDialog
-    open={addToDashboardOpen}
-    sql={sqlText}
-    title={tab.title}
-    chartConfig={tab.chartConfig}
-    columns={tab.result?.columns.map((name) => ({ name, numeric: isNumericColumn(tab.result?.data ?? [], name) }))}
-    onclose={() => (addToDashboardOpen = false)}
-  />
-  <ShareDialog open={shareTab !== null} tab={shareTab} onclose={() => (shareTab = null)} />
-  <SaveQueryDialog open={saveOpen} sql={sqlText} defaultTitle={tab.title} onclose={() => (saveOpen = false)} />
-  <ExplainPlanViewer open={explainOpen} {explainText} onclose={() => (explainOpen = false)} />
-  <ResultCompareDialog open={compareOpen} currentResult={tab.result} onclose={() => (compareOpen = false)} />
+  <SaveQueryDialog open={saveOpen} sql={sqlText} defaultTitle={tab.title} onsaved={(query) => linkQueryFile(tabId, query)} onclose={() => (saveOpen = false)} />
 
   {#if resizing}
     <div class="fixed inset-0 z-50 cursor-row-resize"></div>

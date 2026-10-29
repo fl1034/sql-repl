@@ -64,16 +64,17 @@ function openInActivePane(state: DuckStoreState, tab: EditorTab) {
 export const createTabSlice: StateCreator<DuckStoreState, [], [], TabSlice> = (set, get) => ({
   tabs: [
     {
-      id: "home",
-      title: "Home",
-      type: "home",
+      id: "query",
+      title: "Query 1",
+      type: "sql",
       content: "",
     },
   ],
-  activeTabId: "home",
+  activeTabId: "query",
   otherPaneTabId: null,
 
   createTab: (type = "sql", content = "", title) => {
+    if (type === "home") type = "sql";
     // Kiosk mode: refuse to open gated surfaces; keep the current tab focused.
     if (isGatedTabHidden(type)) {
       return get().activeTabId ?? "";
@@ -212,7 +213,10 @@ export const createTabSlice: StateCreator<DuckStoreState, [], [], TabSlice> = (s
 
   closeAllTabs: () => {
     try {
-      set((state) => settlePanes(state.tabs.filter(isHomeTab), null));
+      set(() => {
+        const tab: EditorTab = { id: generateUUID(), title: "Query 1", type: "sql", content: "" };
+        return settlePanes([tab], tab.id);
+      });
       toast.success("All tabs closed successfully!");
     } catch (error: unknown) {
       toast.error(

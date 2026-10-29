@@ -1,12 +1,16 @@
 <script lang="ts">
-  import { PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Database, Upload } from 'lucide-svelte'
+  import { PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Database } from 'lucide-svelte'
+  import ColorPalette from '../branding/ColorPalette.svelte'
+  import SqlReplLogo from '../branding/SqlReplLogo.svelte'
+  import QueriesTree from '../saved-queries/QueriesTree.svelte'
+  import { getTheme, toggleTheme } from '../../stores/theme.svelte'
+  import { Sun, Moon } from 'lucide-svelte'
   import Button from '../common/Button.svelte'
   import EmptyState from '../common/EmptyState.svelte'
   import Spinner from '../common/Spinner.svelte'
   import SchemaTree from './SchemaTree.svelte'
   import FileImporter from '../importer/FileImporter.svelte'
   import FolderBrowser from '../folders/FolderBrowser.svelte'
-  import ConnectionSwitcher from '../connections/ConnectionSwitcher.svelte'
   import { getUiConfig } from '@/lib/appConfig'
   import { duck, duckActions } from '../../stores/duck.svelte'
   import {
@@ -114,14 +118,16 @@
       </Button>
     </div>
   {:else}
+    <div class="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-edge-subtle px-3">
+      <SqlReplLogo />
+      <ColorPalette />
+      <Button icon variant="ghost" size="sm" onclick={toggleTheme} aria-label="Toggle theme" title="Toggle light/dark mode">
+        {#if getTheme() === 'dark'}<Sun size={15} />{:else}<Moon size={15} />{/if}
+      </Button>
+    </div>
     <div class="flex h-9 shrink-0 items-center gap-1 border-b border-edge-subtle pl-1.5 pr-1.5">
-      <ConnectionSwitcher class="min-w-0" />
+      <span class="px-2 text-xs font-medium text-fg-3">Database</span>
       <div class="ml-auto flex items-center">
-        {#if canImport}
-          <Button icon variant="ghost" size="xs" onclick={() => (importerOpen = true)} title="Import data" aria-label="Import data">
-            <Upload size={13} />
-          </Button>
-        {/if}
         <Button icon variant="ghost" size="xs" onclick={refresh} title="Refresh schema" aria-label="Refresh schema" disabled={loading}>
           <RefreshCw size={13} class={loading ? 'animate-spin' : ''} />
         </Button>
@@ -160,6 +166,7 @@
       {:else}
         <SchemaTree {search} />
       {/if}
+      <QueriesTree />
     </div>
 
     <!-- Files sit at the bottom of the panel, under a schema of any length.

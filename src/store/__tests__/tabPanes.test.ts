@@ -211,22 +211,29 @@ describe("visibleTabs", () => {
 });
 
 describe("restorePanes", () => {
-  it("gives a workspace saved without Home its Home back", () => {
+  it("restores editors without adding Home", () => {
     const next = restorePanes([sql("a")], "a");
-
-    expect(next.tabs.map((tab) => tab.id)).toEqual(["home", "a"]);
+    expect(next.tabs.map((tab) => tab.id)).toEqual(["a"]);
     expect(next.activeTabId).toBe("a");
   });
 
-  it("restores a saved split and picks a tab for the pane that is not focused", () => {
+  it("drops legacy Home while preserving saved editors and split panes", () => {
     const next = restorePanes(split().tabs, "c");
-
-    expect(visibleTabs(next)).toEqual({ left: "home", right: "c" });
-    expect(next.otherPaneTabId).toBe("home");
+    expect(visibleTabs(next)).toEqual({ left: "a", right: "c" });
+    expect(next.tabs.some((tab) => tab.type === "home")).toBe(false);
   });
 
-  it("opens on the first tab when the saved active tab no longer exists", () => {
-    expect(restorePanes([home, sql("a")], "settings-tab").activeTabId).toBe("home");
+  it("falls back to an editor when the saved selection was Home", () => {
+    expect(restorePanes([home, sql("a")], "home").activeTabId).toBe("a");
+  });
+
+  it("opens a SQL editor for an empty or Home-only workspace", () => {
+    for (const saved of [[], [home]]) {
+      const next = restorePanes(saved, "home");
+      expect(next.tabs).toHaveLength(1);
+      expect(next.tabs[0].type).toBe("sql");
+      expect(next.activeTabId).toBe(next.tabs[0].id);
+    }
   });
 });
 

@@ -108,23 +108,47 @@ const chrome = EditorView.theme({
 });
 
 const syntax = HighlightStyle.define([
-  { tag: [t.keyword, t.operatorKeyword, t.modifier], color: "var(--accent)", fontWeight: "500" },
-  { tag: [t.string, t.special(t.string), t.character], color: "var(--success)" },
-  { tag: [t.number, t.integer, t.float, t.bool, t.null, t.atom], color: "var(--info)" },
-  { tag: [t.comment, t.lineComment, t.blockComment], color: "var(--fg-4)", fontStyle: "italic" },
-  { tag: [t.typeName, t.className, t.namespace], color: "var(--warning)" },
-  { tag: [t.function(t.variableName), t.function(t.propertyName)], color: "var(--fg)" },
-  { tag: [t.operator, t.punctuation, t.bracket, t.separator], color: "var(--fg-3)" },
-  { tag: [t.variableName, t.propertyName, t.name], color: "var(--fg-2)" },
-  { tag: t.special(t.variableName), color: "var(--danger)" },
-  { tag: t.heading, color: "var(--fg)", fontWeight: "600" },
-  { tag: [t.link, t.url], color: "var(--info)", textDecoration: "underline" },
+  {
+    tag: [t.keyword, t.operatorKeyword, t.modifier],
+    color: "var(--syntax-keyword, var(--accent))",
+    fontWeight: "500",
+  },
+  {
+    tag: [t.string, t.special(t.string), t.character],
+    color: "var(--syntax-string, var(--success))",
+  },
+  {
+    tag: [t.number, t.integer, t.float, t.bool, t.null, t.atom],
+    color: "var(--syntax-literal, var(--info))",
+  },
+  {
+    tag: [t.comment, t.lineComment, t.blockComment],
+    color: "var(--syntax-comment, var(--fg-4))",
+    fontStyle: "italic",
+  },
+  { tag: [t.typeName, t.className, t.namespace], color: "var(--syntax-type, var(--warning))" },
+  {
+    tag: [t.function(t.variableName), t.function(t.propertyName)],
+    color: "var(--syntax-function, var(--fg))",
+  },
+  {
+    tag: [t.operator, t.punctuation, t.bracket, t.separator],
+    color: "var(--syntax-operator, var(--fg-3))",
+  },
+  { tag: [t.variableName, t.propertyName, t.name], color: "var(--syntax-identifier, var(--fg-2))" },
+  { tag: t.special(t.variableName), color: "var(--syntax-special, var(--danger))" },
+  { tag: t.heading, color: "var(--syntax-function, var(--fg))", fontWeight: "600" },
+  {
+    tag: [t.link, t.url],
+    color: "var(--syntax-literal, var(--info))",
+    textDecoration: "underline",
+  },
   { tag: t.emphasis, fontStyle: "italic" },
   { tag: t.strong, fontWeight: "600" },
-  { tag: t.monospace, color: "var(--success)" },
-  { tag: [t.tagName, t.angleBracket], color: "var(--accent)" },
-  { tag: t.attributeName, color: "var(--warning)" },
-  { tag: t.invalid, color: "var(--danger)" },
+  { tag: t.monospace, color: "var(--syntax-string, var(--success))" },
+  { tag: [t.tagName, t.angleBracket], color: "var(--syntax-keyword, var(--accent))" },
+  { tag: t.attributeName, color: "var(--syntax-type, var(--warning))" },
+  { tag: t.invalid, color: "var(--syntax-special, var(--danger))" },
 ]);
 
 export const editorTheme: Extension = [chrome, syntaxHighlighting(syntax)];

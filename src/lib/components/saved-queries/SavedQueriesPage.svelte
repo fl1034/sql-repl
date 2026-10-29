@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { openQueryFile } from '@/lib/queryFiles'
   import { tick } from 'svelte'
   import { Bookmark, EllipsisVertical, ExternalLink, Pencil, Trash2 } from 'lucide-svelte'
   import PageHeader from '../common/PageHeader.svelte'
@@ -50,7 +51,7 @@
   })
 
   function openQuery(query: SavedQuery) {
-    duckActions().createTab('sql', query.sql_text, query.name)
+    openQueryFile(query)
     goWorkspace()
   }
 

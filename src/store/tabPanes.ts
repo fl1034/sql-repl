@@ -102,11 +102,12 @@ export function settlePanes(
   };
 }
 
-/** A saved tab list, as the workspace shows it: with Home, and settled. */
+/** Restore saved editors, dropping the retired Home screen. */
 export function restorePanes(saved: EditorTab[], activeTabId: string | null): PaneState {
-  const tabs = saved.some(isHomeTab)
-    ? saved
-    : [{ id: "home", title: "Home", type: "home" as const, content: "" }, ...saved];
+  const editors = saved.filter((tab) => !isHomeTab(tab));
+  const tabs: EditorTab[] = editors.length
+    ? editors
+    : [{ id: "query", title: "Query 1", type: "sql", content: "" }];
   return settlePanes(tabs, activeTabId);
 }
 

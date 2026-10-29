@@ -1,5 +1,4 @@
 <script lang="ts">
-  import HomeTab from '../workspace/HomeTab.svelte'
   import { goTo } from '../../stores/router.svelte'
   import SqlTab from '../workspace/SqlTab.svelte'
   import Lazy from '../common/Lazy.svelte'
@@ -41,9 +40,7 @@
     onpointerdowncapture={() => focus(tab.id)}
     onfocusin={() => focus(tab.id)}
   >
-    {#if tab.type === 'home'}
-      <HomeTab />
-    {:else if tab.type === 'sql'}
+    {#if tab.type === 'sql'}
       <SqlTab tabId={tab.id} />
     {:else if tab.type === 'notebook'}
       <Lazy load={() => import('../notebook/NotebookTab.svelte')} props={{ tabId: tab.id }} />

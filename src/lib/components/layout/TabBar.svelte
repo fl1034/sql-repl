@@ -8,12 +8,12 @@
 
 <script lang="ts">
   import {
-    X, Plus, Home, SquareTerminal, NotebookPen, LayoutDashboard, Table2, Columns2, PanelLeftClose,
+    X, Plus, Home, SquareTerminal, NotebookPen, LayoutDashboard, Table2, Columns2, PanelLeftClose, PanelLeft,
   } from 'lucide-svelte'
   import { tick } from 'svelte'
   import ContextMenu, { type ContextMenuItem } from '../common/ContextMenu.svelte'
   import { duck, duckActions } from '../../stores/duck.svelte'
-  import { isMobile } from '../../stores/layout.svelte'
+  import { isMobile, openDrawer } from '../../stores/layout.svelte'
   import { isHomeTab, isSplit, paneOf, visibleTabs, type Pane } from '@/store/tabPanes'
   import type { EditorTab, EditorTabType } from '@/store/types'
 
@@ -187,6 +187,11 @@
   ondragover={onBarDragOver}
   ondrop={onBarDrop}
 >
+  {#if isMobile()}
+    <button class="inline-flex w-9 shrink-0 items-center justify-center text-fg-3 hover:bg-hover hover:text-fg" onclick={openDrawer} aria-label="Show schema explorer" title="Show schema explorer">
+      <PanelLeft size={14} />
+    </button>
+  {/if}
   <div class="flex min-w-0 items-stretch overflow-x-auto [scrollbar-width:none]">
     {#each tabs as tab (tab.id)}
       {@const Icon = ICONS[tab.type] ?? SquareTerminal}

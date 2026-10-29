@@ -121,8 +121,7 @@ export const createProfileSlice: StateCreator<DuckStoreState, [], [], ProfileSli
         set({
           // Connections and Settings became pages, so a workspace saved while
           // one of them was the active tab points at a tab that is gone:
-          // the first tab takes over. Home is pinned since split view, so a
-          // workspace saved without it gets it back.
+          // the first editor takes over; retired Home tabs are discarded.
           ...restorePanes(tabs, workspace.active_tab_id),
           currentDatabase: workspace.current_database ?? "memory",
           // Picked up by the engine's initialize, which runs after this.

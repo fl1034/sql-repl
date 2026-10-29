@@ -342,6 +342,8 @@ export interface ChartConfig {
 }
 
 export interface EditorTab {
+  /** Persistent saved-file identity, independent of the tab title. */
+  savedQueryId?: string;
   id: string;
   title: string;
   type: EditorTabType;
